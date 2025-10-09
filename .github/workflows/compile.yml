@@ -1,0 +1,44 @@
+name: Arduino Compile
+
+on:
+  workflow_dispatch:
+    inputs:
+      filename:
+        description: 'Sketch filename'
+        required: true
+        type: string
+      board:
+        description: 'Board type'
+        required: true
+        default: 'uno'
+        type: string
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v1
+      
+      - name: Install Arduino AVR core
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install arduino:avr
+      
+      - name: Compile sketch
+        run: |
+          mkdir -p build
+          SKETCH_NAME=$(basename ${{ inputs.filename }} .ino)
+          echo "Compiling sketch: sketches/$SKETCH_NAME"
+          arduino-cli compile --fqbn arduino:avr:${{ inputs.board }} --output-dir build sketches/$SKETCH_NAME
+      
+      - name: Upload HEX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-hex
+          path: build/*.hex
+          retention-days: 1
